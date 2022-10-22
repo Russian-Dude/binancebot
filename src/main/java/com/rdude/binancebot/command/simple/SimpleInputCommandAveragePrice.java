@@ -1,5 +1,6 @@
 package com.rdude.binancebot.command.simple;
 
+import com.rdude.binancebot.api.BotMethodsChainEntry;
 import com.rdude.binancebot.entity.BotUser;
 import com.rdude.binancebot.entity.BotUserState;
 import com.rdude.binancebot.reply.ReplyMessage;
@@ -10,7 +11,7 @@ import com.rdude.binancebot.service.MessageSender;
 import com.rdude.binancebot.state.ChatState;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 
@@ -34,7 +35,7 @@ public class SimpleInputCommandAveragePrice extends SimpleInputCommand {
     }
 
     @Override
-    public BotApiMethod<?> execute(BotUser user, long chatId, String text) {
+    public BotMethodsChainEntry<?> execute(BotUser user, long chatId, String text) {
         String[] args = getCurrenciesFromString(text);
         BotUserState botUserState = user.getBotUserState();
         botUserState.setChatState(ChatState.MAIN_MENU);
@@ -44,15 +45,15 @@ public class SimpleInputCommandAveragePrice extends SimpleInputCommand {
             return binanceApiCaller.averagePrice(args[0])
                     .map(price -> {
                         BigDecimal p = price.getPrice();
-                        if (p == null) return messageSender.generate(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
-                        else return messageSender.generateFormatted(
+                        if (p == null) return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
+                        else return messageSender.sendFormatted(
                                 user,
                                 ReplyMessage.AVERAGE_PRICE_X,
                                 args[0],
                                 price.getPrice());
                     })
                     .doOnError(e -> log.error("SimpleInputCommandAveragePrice error while calling BinanceApiCaller.price() with symbol " + args[0], e))
-                    .onErrorReturn(messageSender.errorOccurred(user, chatId))
+                    .onErrorResume(__ -> Mono.just(messageSender.sendErrorOccurred(user, chatId)))
                     .block();
         }
         // in format "BTC, USDT"
@@ -62,8 +63,8 @@ public class SimpleInputCommandAveragePrice extends SimpleInputCommand {
             return binanceApiCaller.averagePrice(currency1, currency2)
                     .map(price -> {
                         BigDecimal p = price.getPrice();
-                        if (p == null) return messageSender.generate(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
-                        else return messageSender.generateFormatted(
+                        if (p == null) return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
+                        else return messageSender.sendFormatted(
                                 user,
                                 ReplyMessage.AVERAGE_PRICE_X_TO_Y,
                                 currency1,
@@ -72,10 +73,10 @@ public class SimpleInputCommandAveragePrice extends SimpleInputCommand {
                         );
                     })
                     .doOnError(e -> log.error("SimpleInputCommandAveragePrice error while calling BinanceApiCaller.price() with currencies " + currency1 + ", " + currency2, e))
-                    .onErrorReturn(messageSender.generate(user, ReplyMessage.WRONG_SYMBOLS_PAIR))
+                    .onErrorResume(__ -> Mono.just(messageSender.sendErrorOccurred(user, chatId)))
                     .block();
         } else {
-            return messageSender.generate(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
+            return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
         }
     }
 }

@@ -1,16 +1,18 @@
 package com.rdude.binancebot.command.callback;
 
+import com.rdude.binancebot.api.BotMethodsChain;
+import com.rdude.binancebot.api.BotMethodsChainEntry;
 import com.rdude.binancebot.entity.BotUser;
+import com.rdude.binancebot.entity.BotUserState;
 import com.rdude.binancebot.reply.ReplyMessage;
 import com.rdude.binancebot.reply.menu.MainInlineMenu;
 import com.rdude.binancebot.service.BotUserService;
+import com.rdude.binancebot.service.MessageEditor;
 import com.rdude.binancebot.service.MessageSender;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
 import java.util.Locale;
 
@@ -21,17 +23,21 @@ public class ChangeLanguageCallbackCommand extends CallbackCommand {
 
     private final MainInlineMenu mainInlineMenu;
 
+    private final MessageEditor messageEditor;
+
 
     public ChangeLanguageCallbackCommand(BotUserService botUserService,
                                          MessageSender messageSender,
-                                         MainInlineMenu mainInlineMenu) {
+                                         MainInlineMenu mainInlineMenu, MessageEditor messageEditor) {
         super(botUserService, messageSender);
         this.mainInlineMenu = mainInlineMenu;
+        this.messageEditor = messageEditor;
     }
 
     @Override
-    protected BotApiMethod<?> execute(BotUser user, @NotNull CallbackQuery callbackQuery) {
-        boolean isSameMessage = user.getBotUserState()
+    protected BotMethodsChainEntry<?> execute(BotUser user, @NotNull CallbackQuery callbackQuery) {
+        BotUserState botUserState = user.getBotUserState();
+        boolean isSameMessage = botUserState
                 .getLastReply()
                 .getMessage(user.getLocale())
                 .equals(callbackQuery.getMessage().getText());
@@ -41,16 +47,19 @@ public class ChangeLanguageCallbackCommand extends CallbackCommand {
         user.setLocale(locale);
         botUserService.save(user);
 
-        EditMessageText editMessageText = new EditMessageText();
-        ReplyMessage lastReply = user.getBotUserState().getLastReply();
-        if (isSameMessage) {
-            editMessageText.setText(lastReply.getMessage(user.getLocale()));
-        }
-        editMessageText.setMessageId(callbackQuery.getMessage().getMessageId());
-        editMessageText.setChatId(callbackQuery.getMessage().getChatId());
-        editMessageText.setReplyMarkup((InlineKeyboardMarkup) mainInlineMenu.getMarkup(user));
+        AnswerCallbackQuery answerCallbackQuery = AnswerCallbackQuery.builder()
+                .callbackQueryId(callbackQuery.getId())
+                .text(ReplyMessage.UNKNOWN_COMMAND.getMessage(locale))
+                .showAlert(true)
+                .build();
 
-        return editMessageText;
+        BotMethodsChainEntry<?> result = BotMethodsChain.create(answerCallbackQuery);
+
+        if (isSameMessage) {
+            result = result.then(messageEditor.edit(botUserState.getLastMessageId(), user, ReplyMessage.MAIN_MENU, mainInlineMenu.getMarkup(user)));
+        }
+
+        return result;
     }
 
     @Override

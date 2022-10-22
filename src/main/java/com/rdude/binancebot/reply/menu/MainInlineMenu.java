@@ -3,7 +3,6 @@ package com.rdude.binancebot.reply.menu;
 import com.rdude.binancebot.entity.BotUser;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import java.util.List;
@@ -12,7 +11,7 @@ import java.util.List;
 public class MainInlineMenu extends InlineMenu {
 
     @Override
-    public ReplyKeyboard getMarkup(BotUser user) {
+    public InlineKeyboardMarkup getMarkup(BotUser user) {
 
         var subscriptionsButton = new InlineKeyboardButton();
         subscriptionsButton.setText(InlineButton.MY_SUBSCRIPTIONS.getText(user.getLocale()));

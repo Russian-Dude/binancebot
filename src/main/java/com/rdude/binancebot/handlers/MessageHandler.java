@@ -1,5 +1,6 @@
 package com.rdude.binancebot.handlers;
 
+import com.rdude.binancebot.api.BotMethodsChainEntry;
 import com.rdude.binancebot.command.simple.SimpleInputCommand;
 import com.rdude.binancebot.command.text.TextCommand;
 import com.rdude.binancebot.entity.BotUser;
@@ -10,7 +11,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 import java.util.List;
@@ -29,7 +29,7 @@ public class MessageHandler {
 
     List<SimpleInputCommand> simpleInputCommands;
 
-    public BotApiMethod<?> processMessage(Message message) {
+    public BotMethodsChainEntry<?> processMessage(Message message) {
         String text = message.getText();
         long chatId = message.getChatId();
 
@@ -37,23 +37,25 @@ public class MessageHandler {
         else return processSimpleText(chatId, text);
     }
 
-    private BotApiMethod<?> processCommand(long chatId, String text) {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private BotMethodsChainEntry<?> processCommand(long chatId, String text) {
         return textCommands.stream()
                 .filter(command -> command.checkString(text))
                 .findFirst()
                 .map(command -> command.execute(chatId, text))
-                .orElseGet(() -> (BotApiMethod) messageSender.generate(chatId, ReplyMessage.UNKNOWN_COMMAND));
+                .orElseGet(() -> (BotMethodsChainEntry) messageSender.send(chatId, ReplyMessage.UNKNOWN_COMMAND));
     }
 
-    private BotApiMethod<?> processSimpleText(long chatId, String text) {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private BotMethodsChainEntry<?> processSimpleText(long chatId, String text) {
         Optional<BotUser> userByChatId = botUserService.findByChatID(chatId);
-        if (userByChatId.isEmpty()) return messageSender.notRegisteredUser(chatId);
+        if (userByChatId.isEmpty()) return messageSender.sendNotRegisteredUser(chatId);
 
         var user = userByChatId.get();
         return simpleInputCommands.stream()
                 .filter(command -> command.isUserInRequiredState(user))
-                .map(command -> command.execute(user, chatId, text))
                 .findFirst()
-                .orElseGet(() -> (BotApiMethod) messageSender.generate(user, ReplyMessage.UNKNOWN_COMMAND));
+                .map(command -> command.execute(user, chatId, text))
+                .orElseGet(() -> (BotMethodsChainEntry) messageSender.send(user, ReplyMessage.UNKNOWN_COMMAND));
     }
 }

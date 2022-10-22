@@ -32,6 +32,12 @@ public class BotUserState {
     @Column(name = "last_reply")
     private ReplyMessage lastReply;
 
+    @Column(name = "last_message_id")
+    private Integer lastMessageId;
+
+    @Column(name = "last_message_has_markup")
+    private boolean lastMessageHasMarkup = false;
+
     public BotUserState(BotUser botUser) {
         this.botUser = botUser;
     }

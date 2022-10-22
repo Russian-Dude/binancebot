@@ -1,5 +1,6 @@
 package com.rdude.binancebot.command.text;
 
+import com.rdude.binancebot.api.BotMethodsChainEntry;
 import com.rdude.binancebot.entity.BotUser;
 import com.rdude.binancebot.entity.BotUserState;
 import com.rdude.binancebot.reply.ReplyMessage;
@@ -10,7 +11,7 @@ import com.rdude.binancebot.service.MessageSender;
 import com.rdude.binancebot.state.ChatState;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 
@@ -38,12 +39,12 @@ public class PriceTextCommand extends TextCommand {
     }
 
     @Override
-    protected BotApiMethod<?> execute(BotUser user, long chatId, String text) {
+    protected BotMethodsChainEntry<?> execute(BotUser user, long chatId, String text) {
         if (text.equals(COMMAND_TEXT)) {
             BotUserState botUserState = user.getBotUserState();
             botUserState.setChatState(ChatState.ENTER_SYMBOL_PAIR_GET_PRICE);
             botUserStateService.save(botUserState);
-            return messageSender.generate(user, ReplyMessage.ENTER_SYMBOL_PAIR);
+            return messageSender.send(user, ReplyMessage.ENTER_SYMBOL_PAIR);
         }
         else {
             String[] args = getArgs(COMMAND_TEXT, text);
@@ -52,15 +53,15 @@ public class PriceTextCommand extends TextCommand {
                 return binanceApiCaller.price(args[0])
                         .map(price -> {
                             BigDecimal p = price.getPrice();
-                            if (p == null) return messageSender.generate(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
-                            else return messageSender.generateFormatted(
+                            if (p == null) return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
+                            else return messageSender.sendFormatted(
                                     user,
                                     ReplyMessage.PRICE_X,
                                     args[0],
                                     price.getPrice());
                         })
                         .doOnError(e -> log.error("PriceTextCommand error while calling BinanceApiCaller.price() with symbol " + args[0], e))
-                        .onErrorReturn(messageSender.errorOccurred(user, chatId))
+                        .onErrorResume(__ -> Mono.just(messageSender.sendErrorOccurred(user, chatId)))
                         .block();
             }
             // in format "BTC, USDT"
@@ -70,8 +71,8 @@ public class PriceTextCommand extends TextCommand {
                 return binanceApiCaller.price(currency1, currency2)
                         .map(price -> {
                             BigDecimal p = price.getPrice();
-                            if (p == null) return messageSender.generate(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
-                            else return messageSender.generateFormatted(
+                            if (p == null) return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
+                            else return messageSender.sendFormatted(
                                     user,
                                     ReplyMessage.PRICE_X_TO_Y,
                                     currency1,
@@ -80,10 +81,10 @@ public class PriceTextCommand extends TextCommand {
                             );
                         })
                         .doOnError(e -> log.error("PriceTextCommand error while calling BinanceApiCaller.price() with currencies " + currency1 + ", " + currency2, e))
-                        .onErrorReturn(messageSender.generate(user, ReplyMessage.WRONG_SYMBOLS_PAIR))
+                        .onErrorResume(__ -> Mono.just(messageSender.sendErrorOccurred(user, chatId)))
                         .block();
             } else {
-                return messageSender.generate(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
+                return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
             }
         }
     }

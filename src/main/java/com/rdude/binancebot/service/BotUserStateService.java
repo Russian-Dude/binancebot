@@ -13,7 +13,6 @@ public class BotUserStateService {
 
     public BotUserState save(BotUserState botUserState) {
         return botUserStateRepository.saveAndFlush(botUserState);
-        //return botUserStateRepository.save(botUserState);
     }
 
 }

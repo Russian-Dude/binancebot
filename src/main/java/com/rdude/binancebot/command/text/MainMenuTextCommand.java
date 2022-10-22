@@ -1,5 +1,6 @@
 package com.rdude.binancebot.command.text;
 
+import com.rdude.binancebot.api.BotMethodsChainEntry;
 import com.rdude.binancebot.entity.BotUser;
 import com.rdude.binancebot.entity.BotUserState;
 import com.rdude.binancebot.reply.ReplyMessage;
@@ -12,7 +13,6 @@ import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 
 @Component
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -37,11 +37,11 @@ public class MainMenuTextCommand extends TextCommand {
     }
 
     @Override
-    protected BotApiMethod<?> execute(@NotNull BotUser user, long chatId, String text) {
+    protected BotMethodsChainEntry<?> execute(@NotNull BotUser user, long chatId, String text) {
         BotUserState botUserState = user.getBotUserState();
         botUserState.setChatState(ChatState.MAIN_MENU);
         botUserStateService.save(botUserState);
-        return messageSender.generate(user, ReplyMessage.MAIN_MENU, mainInlineMenu.getMarkup(user));
+        return messageSender.send(user, ReplyMessage.MAIN_MENU, mainInlineMenu.getMarkup(user));
     }
 
 }

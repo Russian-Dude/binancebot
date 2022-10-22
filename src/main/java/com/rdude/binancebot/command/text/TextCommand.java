@@ -1,5 +1,6 @@
 package com.rdude.binancebot.command.text;
 
+import com.rdude.binancebot.api.BotMethodsChainEntry;
 import com.rdude.binancebot.command.Command;
 import com.rdude.binancebot.entity.BotUser;
 import com.rdude.binancebot.service.BotUserService;
@@ -10,9 +11,6 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
-
-import java.util.Optional;
 
 /**
  * Base class for all bot text commands. Extend it to add a new command.
@@ -30,15 +28,15 @@ public abstract class TextCommand implements Command {
     MessageSender messageSender;
 
 
-    public BotApiMethod<?> execute(long chatId, String text) {
+    public BotMethodsChainEntry<?> execute(long chatId, String text) {
         BotUser user = null;
         try {
             user = botUserService.findByChatID(chatId).orElse(null);
-            if (user == null && isRequiresRegistration()) return messageSender.notRegisteredUser(chatId);
+            if (user == null && isRequiresRegistration()) return messageSender.sendNotRegisteredUser(chatId);
             else return execute(user, chatId, text);
         }
         catch (Exception e) {
-            return messageSender.errorOccurred(user, chatId);
+            return messageSender.sendErrorOccurred(user, chatId);
         }
     }
 
@@ -50,7 +48,7 @@ public abstract class TextCommand implements Command {
      */
     public abstract boolean isRequiresRegistration();
 
-    protected abstract BotApiMethod<?> execute(BotUser user, long chatId, String text);
+    protected abstract BotMethodsChainEntry<?> execute(BotUser user, long chatId, String text);
 
     protected String[] getArgs(String command, String text) {
         return text
