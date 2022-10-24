@@ -1,6 +1,5 @@
 package com.rdude.binancebot.command.simple;
 
-import com.rdude.binancebot.api.BotMethodsChainEntry;
 import com.rdude.binancebot.entity.BotUser;
 import com.rdude.binancebot.service.BotUserService;
 import com.rdude.binancebot.service.MessageSender;
@@ -9,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 @RequiredArgsConstructor
@@ -20,19 +20,19 @@ public abstract class SimpleInputCommand {
 
     public abstract ChatState requiredState();
 
-    public final BotMethodsChainEntry<?> execute(long chatId, String text) {
-        BotUser user = null;
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public final CompletableFuture<?> execute(long chatId, String text) {
         try {
-            user = botUserService.findByChatID(chatId).orElse(null);
-            if (user != null) return execute(user, chatId, text);
-            else return messageSender.sendNotRegisteredUser(chatId);
+            return botUserService.findByChatID(chatId)
+                    .map(user -> execute(user, chatId, text))
+                    .orElseGet(() -> (CompletableFuture) messageSender.sendNotRegisteredUser(chatId));
         }
         catch (Exception e) {
-            return messageSender.sendErrorOccurred(user, chatId);
+            return CompletableFuture.failedFuture(new RuntimeException("Error while executing simple input command \"" + text + "\" in SimpleInputCommand class: " + this.getClass().getSimpleName() + ". Exception message: " + e.getMessage()));
         }
     }
 
-    public abstract BotMethodsChainEntry<?> execute(BotUser user, long chatId, String text);
+    public abstract CompletableFuture<?> execute(BotUser user, long chatId, String text);
 
     public boolean isUserInRequiredState(BotUser user) {
         return user.getBotUserState() != null && Objects.equals(user.getBotUserState().getChatState(), requiredState());

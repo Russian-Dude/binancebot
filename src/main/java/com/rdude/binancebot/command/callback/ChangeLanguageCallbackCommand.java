@@ -1,7 +1,6 @@
 package com.rdude.binancebot.command.callback;
 
-import com.rdude.binancebot.api.BotMethodsChain;
-import com.rdude.binancebot.api.BotMethodsChainEntry;
+import com.rdude.binancebot.api.BotMethodsExecutor;
 import com.rdude.binancebot.entity.BotUser;
 import com.rdude.binancebot.entity.BotUserState;
 import com.rdude.binancebot.reply.ReplyMessage;
@@ -11,10 +10,10 @@ import com.rdude.binancebot.service.MessageEditor;
 import com.rdude.binancebot.service.MessageSender;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class ChangeLanguageCallbackCommand extends CallbackCommand {
@@ -25,41 +24,41 @@ public class ChangeLanguageCallbackCommand extends CallbackCommand {
 
     private final MessageEditor messageEditor;
 
+    private final BotMethodsExecutor executor;
+
 
     public ChangeLanguageCallbackCommand(BotUserService botUserService,
                                          MessageSender messageSender,
-                                         MainInlineMenu mainInlineMenu, MessageEditor messageEditor) {
+                                         MainInlineMenu mainInlineMenu,
+                                         MessageEditor messageEditor,
+                                         BotMethodsExecutor executor) {
         super(botUserService, messageSender);
         this.mainInlineMenu = mainInlineMenu;
         this.messageEditor = messageEditor;
+        this.executor = executor;
     }
 
     @Override
-    protected BotMethodsChainEntry<?> execute(BotUser user, @NotNull CallbackQuery callbackQuery) {
-        BotUserState botUserState = user.getBotUserState();
-        boolean isSameMessage = botUserState
-                .getLastReply()
-                .getMessage(user.getLocale())
-                .equals(callbackQuery.getMessage().getText());
-
-        Locale locale = user.getLocale();
-        locale = locale.equals(Locale.ENGLISH) ? LOCALE_RU : Locale.ENGLISH;
-        user.setLocale(locale);
-        botUserService.save(user);
-
-        AnswerCallbackQuery answerCallbackQuery = AnswerCallbackQuery.builder()
-                .callbackQueryId(callbackQuery.getId())
-                .text(ReplyMessage.UNKNOWN_COMMAND.getMessage(locale))
-                .showAlert(true)
-                .build();
-
-        BotMethodsChainEntry<?> result = BotMethodsChain.create(answerCallbackQuery);
-
-        if (isSameMessage) {
-            result = result.then(messageEditor.edit(botUserState.getLastMessageId(), user, ReplyMessage.MAIN_MENU, mainInlineMenu.getMarkup(user)));
-        }
-
-        return result;
+    protected CompletableFuture<?> execute(BotUser user, @NotNull CallbackQuery callbackQuery) {
+        return executor.execute(() -> {
+                    BotUserState botUserState = user.getBotUserState();
+                    boolean sameMessage = botUserState
+                            .getLastReply()
+                            .getMessage(user.getLocale())
+                            .equals(callbackQuery.getMessage().getText());
+                    Locale locale = user.getLocale();
+                    locale = locale.equals(Locale.ENGLISH) ? LOCALE_RU : Locale.ENGLISH;
+                    user.setLocale(locale);
+                    botUserService.save(user);
+                    return sameMessage;
+                })
+                .thenCompose(sameMessage -> {
+                    BotUserState botUserState = user.getBotUserState();
+                    if (sameMessage) {
+                        return messageEditor.edit(botUserState.getLastMessageId(), user, ReplyMessage.MAIN_MENU, mainInlineMenu.getMarkup(user));
+                    }
+                    else return CompletableFuture.completedFuture(null);
+                });
     }
 
     @Override

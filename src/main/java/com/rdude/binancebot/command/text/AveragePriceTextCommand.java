@@ -1,6 +1,5 @@
 package com.rdude.binancebot.command.text;
 
-import com.rdude.binancebot.api.BotMethodsChainEntry;
 import com.rdude.binancebot.entity.BotUser;
 import com.rdude.binancebot.entity.BotUserState;
 import com.rdude.binancebot.reply.ReplyMessage;
@@ -9,14 +8,13 @@ import com.rdude.binancebot.service.BotUserService;
 import com.rdude.binancebot.service.BotUserStateService;
 import com.rdude.binancebot.service.MessageSender;
 import com.rdude.binancebot.state.ChatState;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.util.concurrent.CompletableFuture;
 
 @Component
-@Slf4j
 public class AveragePriceTextCommand extends TextCommand {
 
     private static final String COMMAND_TEXT = "/average_price";
@@ -41,7 +39,7 @@ public class AveragePriceTextCommand extends TextCommand {
     }
 
     @Override
-    protected BotMethodsChainEntry<?> execute(BotUser user, long chatId, String text) {
+    protected CompletableFuture<?> execute(BotUser user, long chatId, String text) {
         if (text.equals(COMMAND_TEXT)) {
             BotUserState botUserState = user.getBotUserState();
             botUserState.setChatState(ChatState.ENTER_SYMBOL_PAIR_GET_AVG_PRICE);
@@ -62,8 +60,7 @@ public class AveragePriceTextCommand extends TextCommand {
                                     args[0],
                                     price.getPrice());
                         })
-                        .doOnError(e -> log.error("AveragePriceTextCommand error while calling BinanceApiCaller.price() with symbol " + args[0], e))
-                        .onErrorResume(__ -> Mono.just(messageSender.sendErrorOccurred(user, chatId)))
+                        .onErrorResume(e -> Mono.just(CompletableFuture.failedFuture(new RuntimeException("AveragePriceTextCommand error while calling BinanceApiCaller.price() with symbol " + args[0] + ". Exception message: " + e.getMessage()))))
                         .block();
             }
             // in format "BTC, USDT"
@@ -82,8 +79,7 @@ public class AveragePriceTextCommand extends TextCommand {
                                     price.getPrice()
                             );
                         })
-                        .doOnError(e -> log.error("AveragePriceTextCommand error while calling BinanceApiCaller.price() with currencies " + currency1 + ", " + currency2, e))
-                        .onErrorResume(__ -> Mono.just(messageSender.sendErrorOccurred(user, chatId)))
+                        .onErrorResume(e -> Mono.just(CompletableFuture.failedFuture(new RuntimeException("AveragePriceTextCommand error while calling BinanceApiCaller.price() with currencies " + currency1 + ", " + currency2 + ". Exception message: " + e.getMessage()))))
                         .block();
             } else {
                 return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);

@@ -1,7 +1,6 @@
 package com.rdude.binancebot.service;
 
-import com.rdude.binancebot.api.BotMethodsChain;
-import com.rdude.binancebot.api.BotMethodsChainEntry;
+import com.rdude.binancebot.api.BotMethodsExecutor;
 import com.rdude.binancebot.entity.BotUser;
 import com.rdude.binancebot.entity.BotUserState;
 import com.rdude.binancebot.reply.ReplyMessage;
@@ -11,30 +10,34 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageRe
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
+import java.util.concurrent.CompletableFuture;
+
 @Component
 @RequiredArgsConstructor
 public class MessageEditor {
 
     private final BotUserStateService botUserStateService;
 
+    private final BotMethodsExecutor executor;
 
-    public BotMethodsChainEntry<?> edit(Integer messageId, BotUser user, ReplyMessage newText) {
+
+    public CompletableFuture<?> edit(Integer messageId, BotUser user, ReplyMessage newText) {
         return edit(messageId, user, newText, null);
     }
 
-    public BotMethodsChainEntry<?> edit(Integer messageId, BotUser user, ReplyMessage newText, InlineKeyboardMarkup keyboard) {
+    public CompletableFuture<?> edit(Integer messageId, BotUser user, ReplyMessage newText, InlineKeyboardMarkup keyboard) {
         return edit(messageId, user, newText, newText.getMessage(user.getLocale()), keyboard);
     }
 
-    public BotMethodsChainEntry<?> editFormatted(Integer messageId, BotUser user, ReplyMessage newText, Object... args) {
+    public CompletableFuture<?> editFormatted(Integer messageId, BotUser user, ReplyMessage newText, Object... args) {
         return editFormatted(messageId, user, newText, null, args);
     }
 
-    public BotMethodsChainEntry<?> editFormatted(Integer messageId, BotUser user, ReplyMessage newText, InlineKeyboardMarkup keyboard, Object... args) {
+    public CompletableFuture<?> editFormatted(Integer messageId, BotUser user, ReplyMessage newText, InlineKeyboardMarkup keyboard, Object... args) {
         return edit(messageId, user, newText, String.format(newText.getMessage(user.getLocale()), args), keyboard);
     }
 
-    public BotMethodsChainEntry<?> removeKeyboard(Integer messageId, BotUser user) {
+    public CompletableFuture<?> removeKeyboard(Integer messageId, BotUser user) {
         BotUserState botUserState = user.getBotUserState();
         Integer lastMessageId = botUserState.getLastMessageId();
         boolean lastMessageHasMarkup = botUserState.isLastMessageHasMarkup();
@@ -46,10 +49,10 @@ public class MessageEditor {
         EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
         editMessageReplyMarkup.setChatId(user.getChatId());
         editMessageReplyMarkup.setMessageId(messageId);
-        return BotMethodsChain.create(editMessageReplyMarkup);
+        return executor.execute(editMessageReplyMarkup);
     }
 
-    private BotMethodsChainEntry<?> edit(Integer messageId, BotUser user, ReplyMessage replyMessage, String newText, InlineKeyboardMarkup keyboard) {
+    private CompletableFuture<?> edit(Integer messageId, BotUser user, ReplyMessage replyMessage, String newText, InlineKeyboardMarkup keyboard) {
         BotUserState botUserState = user.getBotUserState();
         if (botUserState.getLastMessageId().equals(messageId) && !botUserState.getLastReply().equals(replyMessage)) {
             botUserState.setLastReply(replyMessage);
@@ -62,7 +65,7 @@ public class MessageEditor {
         editMessageText.setChatId(user.getChatId());
         editMessageText.setText(newText);
         editMessageText.setReplyMarkup(keyboard);
-        return BotMethodsChain.create(editMessageText);
+        return executor.execute(editMessageText);
     }
 
 }

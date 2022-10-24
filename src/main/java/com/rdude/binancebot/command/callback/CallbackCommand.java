@@ -1,6 +1,5 @@
 package com.rdude.binancebot.command.callback;
 
-import com.rdude.binancebot.api.BotMethodsChainEntry;
 import com.rdude.binancebot.command.Command;
 import com.rdude.binancebot.entity.BotUser;
 import com.rdude.binancebot.service.BotUserService;
@@ -13,6 +12,8 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 
+import java.util.concurrent.CompletableFuture;
+
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PROTECTED)
@@ -24,20 +25,20 @@ public abstract class CallbackCommand implements Command {
     MessageSender messageSender;
 
 
-    public BotMethodsChainEntry<?> execute(@NotNull CallbackQuery callbackQuery) {
-        Long chatId = callbackQuery.getMessage().getChatId();
-        BotUser user = null;
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public CompletableFuture<?> execute(@NotNull CallbackQuery callbackQuery) {
         try {
-            user = botUserService.findByChatID(chatId).orElse(null);
-            if (user != null) return execute(user, callbackQuery);
-            else return messageSender.sendNotRegisteredUser(chatId);
+            Long chatId = callbackQuery.getMessage().getChatId();
+            return botUserService.findByChatID(chatId)
+                    .map(user -> execute(user, callbackQuery))
+                    .orElseGet(() -> (CompletableFuture) messageSender.sendNotRegisteredUser(chatId));
         }
         catch (Exception e) {
-            return messageSender.sendErrorOccurred(user, chatId);
+            return CompletableFuture.failedFuture(new RuntimeException("Error while executing callback command " + this.getClass().getSimpleName() + ". " + e.getMessage()));
         }
     }
 
-    protected abstract BotMethodsChainEntry<?> execute(BotUser user, @NotNull CallbackQuery callbackQuery);
+    protected abstract CompletableFuture<?> execute(BotUser user, @NotNull CallbackQuery callbackQuery);
 
     public abstract String getCallbackData();
 

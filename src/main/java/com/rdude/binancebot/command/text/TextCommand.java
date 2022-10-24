@@ -1,6 +1,5 @@
 package com.rdude.binancebot.command.text;
 
-import com.rdude.binancebot.api.BotMethodsChainEntry;
 import com.rdude.binancebot.command.Command;
 import com.rdude.binancebot.entity.BotUser;
 import com.rdude.binancebot.service.BotUserService;
@@ -11,6 +10,8 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Base class for all bot text commands. Extend it to add a new command.
@@ -28,15 +29,14 @@ public abstract class TextCommand implements Command {
     MessageSender messageSender;
 
 
-    public BotMethodsChainEntry<?> execute(long chatId, String text) {
-        BotUser user = null;
+    public CompletableFuture<?> execute(long chatId, String text) {
         try {
-            user = botUserService.findByChatID(chatId).orElse(null);
+            BotUser user = botUserService.findByChatID(chatId).orElse(null);
             if (user == null && isRequiresRegistration()) return messageSender.sendNotRegisteredUser(chatId);
             else return execute(user, chatId, text);
         }
         catch (Exception e) {
-            return messageSender.sendErrorOccurred(user, chatId);
+            return CompletableFuture.failedFuture(new RuntimeException("Error while executing text command \"" + text + "\" in TextCommand class: " + this.getClass().getSimpleName() + ". Exception message: " + e.getMessage()));
         }
     }
 
@@ -48,7 +48,7 @@ public abstract class TextCommand implements Command {
      */
     public abstract boolean isRequiresRegistration();
 
-    protected abstract BotMethodsChainEntry<?> execute(BotUser user, long chatId, String text);
+    protected abstract CompletableFuture<?> execute(BotUser user, long chatId, String text);
 
     protected String[] getArgs(String command, String text) {
         return text
