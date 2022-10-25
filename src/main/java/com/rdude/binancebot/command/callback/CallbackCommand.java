@@ -11,6 +11,7 @@ import lombok.experimental.FieldDefaults;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import reactor.core.publisher.Mono;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -26,19 +27,19 @@ public abstract class CallbackCommand implements Command {
 
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public CompletableFuture<?> execute(@NotNull CallbackQuery callbackQuery) {
+    public Mono<?> execute(@NotNull CallbackQuery callbackQuery) {
         try {
             Long chatId = callbackQuery.getMessage().getChatId();
             return botUserService.findByChatID(chatId)
                     .map(user -> execute(user, callbackQuery))
-                    .orElseGet(() -> (CompletableFuture) messageSender.sendNotRegisteredUser(chatId));
+                    .orElseGet(() -> (Mono) messageSender.sendNotRegisteredUser(chatId));
         }
         catch (Exception e) {
-            return CompletableFuture.failedFuture(new RuntimeException("Error while executing callback command " + this.getClass().getSimpleName() + ". " + e.getMessage()));
+            return Mono.error(new RuntimeException("Error while executing callback command " + this.getClass().getSimpleName() + ". " + e.getMessage()));
         }
     }
 
-    protected abstract CompletableFuture<?> execute(BotUser user, @NotNull CallbackQuery callbackQuery);
+    protected abstract Mono<?> execute(BotUser user, @NotNull CallbackQuery callbackQuery);
 
     public abstract String getCallbackData();
 

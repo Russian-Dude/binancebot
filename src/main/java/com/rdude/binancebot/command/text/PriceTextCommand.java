@@ -37,7 +37,7 @@ public class PriceTextCommand extends TextCommand {
     }
 
     @Override
-    protected CompletableFuture<?> execute(BotUser user, long chatId, String text) {
+    protected Mono<?> execute(BotUser user, long chatId, String text) {
         if (text.equals(COMMAND_TEXT)) {
             BotUserState botUserState = user.getBotUserState();
             botUserState.setChatState(ChatState.ENTER_SYMBOL_PAIR_GET_PRICE);
@@ -49,7 +49,7 @@ public class PriceTextCommand extends TextCommand {
             // in format "BTCUSDT"
             if (args.length == 1) {
                 return binanceApiCaller.price(args[0])
-                        .map(price -> {
+                        .flatMap(price -> {
                             BigDecimal p = price.getPrice();
                             if (p == null) return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
                             else return messageSender.sendFormatted(
@@ -57,16 +57,14 @@ public class PriceTextCommand extends TextCommand {
                                     ReplyMessage.PRICE_X,
                                     args[0],
                                     price.getPrice());
-                        })
-                        .onErrorResume(e -> Mono.just(CompletableFuture.failedFuture(new RuntimeException("PriceTextCommand error while calling BinanceApiCaller.price() with symbol " + args[0] + ". Exception message: " + e.getMessage()))))
-                        .block();
+                        });
             }
             // in format "BTC, USDT"
             else if (args.length == 2) {
                 String currency1 = args[0];
                 String currency2 = args[1];
                 return binanceApiCaller.price(currency1, currency2)
-                        .map(price -> {
+                        .flatMap(price -> {
                             BigDecimal p = price.getPrice();
                             if (p == null) return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
                             else return messageSender.sendFormatted(
@@ -76,9 +74,7 @@ public class PriceTextCommand extends TextCommand {
                                     currency2,
                                     price.getPrice()
                             );
-                        })
-                        .onErrorResume(e -> Mono.just(CompletableFuture.failedFuture(new RuntimeException("PriceTextCommand error while calling BinanceApiCaller.price() with currencies " + currency1 + ", " + currency2 + ". Exception message: " + e.getMessage()))))
-                        .block();
+                        });
             }
             else {
                 return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);

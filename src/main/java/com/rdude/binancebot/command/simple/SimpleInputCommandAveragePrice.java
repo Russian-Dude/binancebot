@@ -33,7 +33,7 @@ public class SimpleInputCommandAveragePrice extends SimpleInputCommand {
     }
 
     @Override
-    public CompletableFuture<?> execute(BotUser user, long chatId, String text) {
+    public Mono<?> execute(BotUser user, long chatId, String text) {
         String[] args = getCurrenciesFromString(text);
         BotUserState botUserState = user.getBotUserState();
         botUserState.setChatState(ChatState.MAIN_MENU);
@@ -41,7 +41,7 @@ public class SimpleInputCommandAveragePrice extends SimpleInputCommand {
         // in format "BTCUSDT"
         if (args.length == 1) {
             return binanceApiCaller.averagePrice(args[0])
-                    .map(price -> {
+                    .flatMap(price -> {
                         BigDecimal p = price.getPrice();
                         if (p == null) return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
                         else return messageSender.sendFormatted(
@@ -49,16 +49,14 @@ public class SimpleInputCommandAveragePrice extends SimpleInputCommand {
                                 ReplyMessage.AVERAGE_PRICE_X,
                                 args[0],
                                 price.getPrice());
-                    })
-                    .onErrorResume(e -> Mono.just(CompletableFuture.failedFuture(new RuntimeException("SimpleInputCommandAveragePrice error while calling BinanceApiCaller.price() with symbol " + args[0] + ". Exception message: " + e.getMessage()))))
-                    .block();
+                    });
         }
         // in format "BTC, USDT"
         else if (args.length == 2) {
             String currency1 = args[0];
             String currency2 = args[1];
             return binanceApiCaller.averagePrice(currency1, currency2)
-                    .map(price -> {
+                    .flatMap(price -> {
                         BigDecimal p = price.getPrice();
                         if (p == null) return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
                         else return messageSender.sendFormatted(
@@ -68,9 +66,7 @@ public class SimpleInputCommandAveragePrice extends SimpleInputCommand {
                                 currency2,
                                 price.getPrice()
                         );
-                    })
-                    .onErrorResume(e -> Mono.just(CompletableFuture.failedFuture(new RuntimeException("SimpleInputCommandAveragePrice error while calling BinanceApiCaller.price() with currencies " + currency1 + ", " + currency2 + ". Exception message: " + e.getMessage()))))
-                    .block();
+                    });
         } else {
             return messageSender.send(user, ReplyMessage.WRONG_SYMBOLS_PAIR);
         }

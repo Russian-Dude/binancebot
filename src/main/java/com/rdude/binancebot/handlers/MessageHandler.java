@@ -11,10 +11,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Message;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 @Component
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class MessageHandler {
 
     List<SimpleInputCommand> simpleInputCommands;
 
-    public CompletableFuture<?> processMessage(Message message) {
+    public Mono<?> processMessage(Message message) {
         String text = message.getText();
         long chatId = message.getChatId();
 
@@ -38,16 +38,16 @@ public class MessageHandler {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private CompletableFuture<?> processCommand(long chatId, String text) {
+    private Mono<?> processCommand(long chatId, String text) {
         return textCommands.stream()
                 .filter(command -> command.checkString(text))
                 .findFirst()
                 .map(command -> command.execute(chatId, text))
-                .orElseGet(() -> (CompletableFuture) messageSender.send(chatId, ReplyMessage.UNKNOWN_COMMAND));
+                .orElseGet(() -> (Mono) messageSender.send(chatId, ReplyMessage.UNKNOWN_COMMAND));
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private CompletableFuture<?> processSimpleText(long chatId, String text) {
+    private Mono<?> processSimpleText(long chatId, String text) {
         Optional<BotUser> userByChatId = botUserService.findByChatID(chatId);
         if (userByChatId.isEmpty()) return messageSender.sendNotRegisteredUser(chatId);
 
@@ -56,6 +56,6 @@ public class MessageHandler {
                 .filter(command -> command.isUserInRequiredState(user))
                 .findFirst()
                 .map(command -> command.execute(user, chatId, text))
-                .orElseGet(() -> (CompletableFuture) messageSender.send(user, ReplyMessage.UNKNOWN_COMMAND));
+                .orElseGet(() -> (Mono) messageSender.send(user, ReplyMessage.UNKNOWN_COMMAND));
     }
 }

@@ -12,8 +12,7 @@ import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
-
-import java.util.concurrent.CompletableFuture;
+import reactor.core.publisher.Mono;
 
 @Component
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -38,7 +37,7 @@ public class MainMenuTextCommand extends TextCommand {
     }
 
     @Override
-    protected CompletableFuture<?> execute(@NotNull BotUser user, long chatId, String text) {
+    protected Mono<?> execute(@NotNull BotUser user, long chatId, String text) {
         BotUserState botUserState = user.getBotUserState();
         botUserState.setChatState(ChatState.MAIN_MENU);
         botUserStateService.save(botUserState);

@@ -20,11 +20,9 @@ public class ExceptionHandler {
         BotUser user = botUserService.findByChatID(chatId).orElse(null);
         log.error(throwable.getMessage(), throwable);
         messageSender.sendErrorOccurred(user, chatId)
-                .exceptionally(__ -> {
-                    log.error("Can not send error message to user {}", user);
-                    return null;
-                })
-                .join();
+                .doOnError(e -> log.error("Can not send error message to user {}. Exception message: {}", user, e.getMessage()))
+                .onErrorComplete()
+                .subscribe();
     }
 
 }

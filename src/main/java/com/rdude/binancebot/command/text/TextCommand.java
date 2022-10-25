@@ -10,6 +10,7 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -29,14 +30,14 @@ public abstract class TextCommand implements Command {
     MessageSender messageSender;
 
 
-    public CompletableFuture<?> execute(long chatId, String text) {
+    public Mono<?> execute(long chatId, String text) {
         try {
             BotUser user = botUserService.findByChatID(chatId).orElse(null);
             if (user == null && isRequiresRegistration()) return messageSender.sendNotRegisteredUser(chatId);
             else return execute(user, chatId, text);
         }
         catch (Exception e) {
-            return CompletableFuture.failedFuture(new RuntimeException("Error while executing text command \"" + text + "\" in TextCommand class: " + this.getClass().getSimpleName() + ". Exception message: " + e.getMessage()));
+            return Mono.error(new RuntimeException("Error while executing text command \"" + text + "\" in TextCommand class: " + this.getClass().getSimpleName() + ". Exception message: " + e.getMessage()));
         }
     }
 
@@ -48,7 +49,7 @@ public abstract class TextCommand implements Command {
      */
     public abstract boolean isRequiresRegistration();
 
-    protected abstract CompletableFuture<?> execute(BotUser user, long chatId, String text);
+    protected abstract Mono<?> execute(BotUser user, long chatId, String text);
 
     protected String[] getArgs(String command, String text) {
         return text

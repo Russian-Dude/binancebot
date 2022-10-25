@@ -12,9 +12,9 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.starter.SpringWebhookBot;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 @Component
@@ -55,7 +55,7 @@ public class BinanceBot extends SpringWebhookBot {
 
     @Override
     public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
-        CompletableFuture<?> result = null;
+        Mono<?> result = null;
 
         // callback query
         if (update.hasCallbackQuery() && update.getCallbackQuery().getMessage().getChat().isUserChat()) {
@@ -68,11 +68,9 @@ public class BinanceBot extends SpringWebhookBot {
         }
 
         if (result != null) {
-            result.exceptionally(throwable -> {
-                        exceptionHandler.handle(throwable, update.getCallbackQuery().getMessage().getChatId());
-                        return null;
-                    })
-                    .join();
+            result.doOnError(e -> exceptionHandler.handle(e, update.getCallbackQuery().getMessage().getChatId()))
+                    .onErrorComplete()
+                    .subscribe();
         }
         return null;
     }

@@ -5,8 +5,7 @@ import com.rdude.binancebot.service.BotUserService;
 import com.rdude.binancebot.service.BotUserStateService;
 import com.rdude.binancebot.service.MessageSender;
 import org.springframework.stereotype.Component;
-
-import java.util.concurrent.CompletableFuture;
+import reactor.core.publisher.Mono;
 
 @Component
 public class StartTextCommand extends TextCommand {
@@ -29,7 +28,7 @@ public class StartTextCommand extends TextCommand {
     }
 
     @Override
-    protected CompletableFuture<?> execute(BotUser user, long chatId, String text) {
+    protected Mono<?> execute(BotUser user, long chatId, String text) {
         if (user == null) user = botUserService.save(new BotUser(chatId));
         return mainMenuCommand.execute(user, chatId, text);
     }

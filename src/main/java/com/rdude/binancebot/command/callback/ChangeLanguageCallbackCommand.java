@@ -11,9 +11,9 @@ import com.rdude.binancebot.service.MessageSender;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import reactor.core.publisher.Mono;
 
 import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
 
 @Component
 public class ChangeLanguageCallbackCommand extends CallbackCommand {
@@ -39,8 +39,8 @@ public class ChangeLanguageCallbackCommand extends CallbackCommand {
     }
 
     @Override
-    protected CompletableFuture<?> execute(BotUser user, @NotNull CallbackQuery callbackQuery) {
-        return executor.execute(() -> {
+    protected Mono<?> execute(BotUser user, @NotNull CallbackQuery callbackQuery) {
+        return Mono.fromSupplier(() -> {
                     BotUserState botUserState = user.getBotUserState();
                     boolean sameMessage = botUserState
                             .getLastReply()
@@ -52,12 +52,12 @@ public class ChangeLanguageCallbackCommand extends CallbackCommand {
                     botUserService.save(user);
                     return sameMessage;
                 })
-                .thenCompose(sameMessage -> {
+                .flatMap(sameMessage -> {
                     BotUserState botUserState = user.getBotUserState();
                     if (sameMessage) {
                         return messageEditor.edit(botUserState.getLastMessageId(), user, ReplyMessage.MAIN_MENU, mainInlineMenu.getMarkup(user));
                     }
-                    else return CompletableFuture.completedFuture(null);
+                    else return Mono.empty();
                 });
     }
 
