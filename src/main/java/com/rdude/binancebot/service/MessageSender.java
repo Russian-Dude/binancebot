@@ -13,6 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import reactor.core.publisher.Mono;
 
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -83,9 +84,10 @@ public class MessageSender {
     }
 
     private Mono<Message> send(BotUser user, ReplyMessage message, String text, ReplyKeyboard keyboard) {
+
+        Long chatId = user.getChatId();
         BotUserState botUserState = user.getBotUserState();
         Integer lastMessageId = botUserState.getLastMessageId();
-        Long chatId = user.getChatId();
 
         Mono<?> editMarkupResult = null;
         if (botUserState.isLastMessageHasMarkup() && lastMessageId != null) {

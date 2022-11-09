@@ -24,7 +24,8 @@ public enum ReplyMessage {
     PRICE_CHANGED("price_changed"),
     ENTER_PERCENT("enter_percent"),
     WRONG_PERCENT("wrong_percent"),
-    SUBSCRIBED("subscribed")
+    SUBSCRIBED("subscribed"),
+    SUBSCRIPTION("subscription")
 
     ;
 

@@ -6,6 +6,7 @@ import com.rdude.binancebot.entity.BotUserState;
 import com.rdude.binancebot.reply.ReplyMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -36,35 +37,51 @@ public class MessageEditor {
         return edit(messageId, user, newText, String.format(newText.getMessage(user.getLocale()), args), keyboard);
     }
 
-    public Mono<?> removeKeyboard(Integer messageId, BotUser user) {
-        BotUserState botUserState = user.getBotUserState();
-        Integer lastMessageId = botUserState.getLastMessageId();
-        boolean lastMessageHasMarkup = botUserState.isLastMessageHasMarkup();
-        if (messageId.equals(lastMessageId) && lastMessageHasMarkup) {
-            botUserState.setLastMessageHasMarkup(false);
-            botUserStateService.save(botUserState);
-        }
+    public Mono<?> delete(Integer messageId, BotUser user) {
+        return Mono.fromSupplier(() -> {
+                    var deleteMessage = new DeleteMessage();
+                    deleteMessage.setMessageId(messageId);
+                    deleteMessage.setChatId(user.getChatId());
+                    return deleteMessage;
+                })
+                .flatMap(executor::execute);
+    }
 
-        EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
-        editMessageReplyMarkup.setChatId(user.getChatId());
-        editMessageReplyMarkup.setMessageId(messageId);
-        return executor.execute(editMessageReplyMarkup);
+    public Mono<?> removeKeyboard(Integer messageId, BotUser user) {
+        return Mono.fromSupplier(() -> {
+                    BotUserState botUserState = user.getBotUserState();
+                    Integer lastMessageId = botUserState.getLastMessageId();
+                    boolean lastMessageHasMarkup = botUserState.isLastMessageHasMarkup();
+                    if (messageId.equals(lastMessageId) && lastMessageHasMarkup) {
+                        botUserState.setLastMessageHasMarkup(false);
+                        botUserStateService.save(botUserState);
+                    }
+
+                    EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
+                    editMessageReplyMarkup.setChatId(user.getChatId());
+                    editMessageReplyMarkup.setMessageId(messageId);
+                    return editMessageReplyMarkup;
+                })
+                .flatMap(executor::execute);
     }
 
     private Mono<?> edit(Integer messageId, BotUser user, ReplyMessage replyMessage, String newText, InlineKeyboardMarkup keyboard) {
-        BotUserState botUserState = user.getBotUserState();
-        if (botUserState.getLastMessageId().equals(messageId) && !botUserState.getLastReply().equals(replyMessage)) {
-            botUserState.setLastReply(replyMessage);
-            botUserState.setLastMessageHasMarkup(keyboard != null);
-            botUserStateService.save(botUserState);
-        }
+        return Mono.fromSupplier(() -> {
+                    BotUserState botUserState = user.getBotUserState();
+                    if (botUserState.getLastMessageId().equals(messageId) && !botUserState.getLastReply().equals(replyMessage)) {
+                        botUserState.setLastReply(replyMessage);
+                        botUserState.setLastMessageHasMarkup(keyboard != null);
+                        botUserStateService.save(botUserState);
+                    }
 
-        EditMessageText editMessageText = new EditMessageText();
-        editMessageText.setMessageId(messageId);
-        editMessageText.setChatId(user.getChatId());
-        editMessageText.setText(newText);
-        editMessageText.setReplyMarkup(keyboard);
-        return executor.execute(editMessageText);
+                    EditMessageText editMessageText = new EditMessageText();
+                    editMessageText.setMessageId(messageId);
+                    editMessageText.setChatId(user.getChatId());
+                    editMessageText.setText(newText);
+                    editMessageText.setReplyMarkup(keyboard);
+                    return editMessageText;
+                })
+                .flatMap(executor::execute);
     }
 
 }

@@ -14,7 +14,8 @@ import java.util.ResourceBundle;
 public enum InlineButton {
 
     CHANGE_LANGUAGE("change_language"),
-    MY_SUBSCRIPTIONS("my_subscriptions")
+    MY_SUBSCRIPTIONS("my_subscriptions"),
+    UNSUBSCRIBE("unsubscribe")
 
     ;
 
