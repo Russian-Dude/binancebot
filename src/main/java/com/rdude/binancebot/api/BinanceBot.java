@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.starter.SpringWebhookBot;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
@@ -73,6 +74,28 @@ public class BinanceBot extends SpringWebhookBot {
                     .subscribe();
         }
         return null;
+    }
+
+    public void executeInChat(long chatId, Mono<?> mono) {
+        mono.doOnError(e -> exceptionHandler.handle(e, chatId))
+                .onErrorComplete()
+                .subscribe();
+    }
+
+    public void executeInChat(long chatId, Flux<?> flux) {
+        flux.onErrorContinue((e, __) -> exceptionHandler.handle(e, chatId))
+                .subscribe();
+    }
+
+    public void execute(Mono<?> mono) {
+        mono.doOnError(exceptionHandler::handle)
+                .onErrorComplete()
+                .subscribe();
+    }
+
+    public void execute(Flux<?> flux) {
+        flux.onErrorContinue((e, __) -> exceptionHandler.handle(e))
+                .subscribe();
     }
 
     ExecutorService getExecutor() {

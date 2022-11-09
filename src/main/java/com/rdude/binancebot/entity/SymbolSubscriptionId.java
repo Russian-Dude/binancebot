@@ -14,8 +14,8 @@ public class SymbolSubscriptionId implements Serializable {
 
     Long botUser;
 
-    String symbol1;
+    String currency1;
 
-    String symbol2;
+    String currency2;
 
 }

@@ -1,5 +1,6 @@
 package com.rdude.binancebot.entity;
 
+import com.rdude.binancebot.dto.Symbol;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,12 +18,12 @@ import java.math.BigDecimal;
 public class SymbolSubscription {
 
     @Id
-    @Column(name = "symbol_1")
-    private String symbol1;
+    @Column(name = "currency_1")
+    private String currency1;
 
     @Id
-    @Column(name = "symbol_2")
-    private String symbol2;
+    @Column(name = "currency_2")
+    private String currency2;
 
     @Id
     @ManyToOne(cascade = CascadeType.ALL)
@@ -36,8 +37,8 @@ public class SymbolSubscription {
     private BigDecimal lastNotifiedPrice;
 
 
-    public String getSymbolName() {
-        return symbol1 + symbol2;
+    public Symbol getSymbol() {
+        return new Symbol(currency1, currency2);
     }
 
 }

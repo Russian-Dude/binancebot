@@ -27,6 +27,10 @@ public class BotUser {
     @ToString.Exclude
     private BotUserState botUserState;
 
+    @OneToOne(mappedBy = "botUser", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    private LastEnteredSymbol lastEnteredSymbol;
+
     @OneToMany(mappedBy = "botUser", cascade = CascadeType.ALL)
     @ToString.Exclude
     private List<SymbolSubscription> symbolSubscriptions;
@@ -34,5 +38,6 @@ public class BotUser {
     public BotUser(Long chatId) {
         this.chatId = chatId;
         botUserState = new BotUserState(this);
+        lastEnteredSymbol = new LastEnteredSymbol(this);
     }
 }

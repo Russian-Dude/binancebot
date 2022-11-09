@@ -1,4 +1,4 @@
-package com.rdude.binancebot.pojo;
+package com.rdude.binancebot.dto;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

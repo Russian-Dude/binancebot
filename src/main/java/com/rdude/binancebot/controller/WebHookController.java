@@ -16,7 +16,7 @@ public class WebHookController {
     @Autowired
     private final BinanceBot binanceBot;
 
-    // TODO: 20.10.2022 remove return type
+
     @PostMapping(value = "/")
     public BotApiMethod<?> onUpdateReceived(@RequestBody Update update) {
         return binanceBot.onWebhookUpdateReceived(update);

@@ -20,7 +20,11 @@ public enum ReplyMessage {
     AVERAGE_PRICE_X_TO_Y("average_price_x_to_y"),
     AVERAGE_PRICE_X("average_price_x"),
     PRICE_X("price_x"),
-    PRICE_X_TO_Y("price_x_to_y")
+    PRICE_X_TO_Y("price_x_to_y"),
+    PRICE_CHANGED("price_changed"),
+    ENTER_PERCENT("enter_percent"),
+    WRONG_PERCENT("wrong_percent"),
+    SUBSCRIBED("subscribed")
 
     ;
 

@@ -1,7 +1,8 @@
 package com.rdude.binancebot.service;
 
-import com.rdude.binancebot.pojo.SymbolAveragePrice;
-import com.rdude.binancebot.pojo.SymbolPrice;
+import com.rdude.binancebot.dto.Symbol;
+import com.rdude.binancebot.dto.SymbolAveragePrice;
+import com.rdude.binancebot.dto.SymbolPrice;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -46,6 +47,10 @@ public class BinanceApiCaller {
 
     public Mono<SymbolPrice> price(String currency1, String currency2) {
         return price(currency1 + currency2);
+    }
+
+    public Mono<SymbolPrice> price(Symbol symbol) {
+        return price(symbol.getSymbolString());
     }
 
     public Mono<SymbolPrice> price(String symbol) {

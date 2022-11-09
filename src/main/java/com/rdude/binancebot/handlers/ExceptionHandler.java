@@ -25,4 +25,8 @@ public class ExceptionHandler {
                 .subscribe();
     }
 
+    public void handle(Throwable throwable) {
+        log.error(throwable.getMessage(), throwable);
+    }
+
 }
